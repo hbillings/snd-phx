@@ -1,0 +1,167 @@
+{% extends '_base.html' %}
+{% block css %}
+<link rel="stylesheet" type="text/css" href="//s3.amazonaws.com/media.apps.chicagotribune.com/bootstrap/v2.2.2r1/css/bootstrap.css" />
+<link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/3.0.2/css/font-awesome.min.css" />
+<link rel="stylesheet" type="text/css" href="css/style.css">
+{% endblock %}
+{% block content %}
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.2/backbone-min.js"></script>
+<script type="text/javascript" src="js/app.js"></script>
+<script type="text/javascript">
+    var events = {{ Events|filter_litfest_data|tojson|safe }};
+    $(document).ready(function(){ initialize(); });
+</script>
+
+<script type="text/template" id="event-list-template">
+<div class="event-time-slot row-fluid">
+    <div class="sorted-by span12"> <% if (sortField == 'Time'){ %>
+            <% var numbers = /^(\d+)/ %>
+            <% var eventTime = numbers.exec(events[0].get("StartTime"))[0] %>
+            <% var ampm = events[0].get("StartTime").slice(-4) %>
+            <h2 class="sort-field"><%= events[0].get("Day") %>, <%= eventTime %> <%= ampm %> <span class="expanded">collapse</span></h2>
+        <% } else if (sortField == 'Search') { %>
+            <h2 id="found_counter">Matching events</h2>
+        <% } else { %>
+            <% var displaySortField = events[0].get(sortField) %>
+            <h2 class="sort-field"><%= displaySortField %> <span class="collapsed">expand</span></h2>
+        <% } %>
+    </div>
+
+<% _.each (events, function(v,i){ %>
+    <% if (sortField == 'Time'){ %>
+        <% if (v.get("StartTime") == 'All Day') { %>
+            <% var currentEventStart = v.get("StartTime") %>
+        <% } else { %>
+            <% var currentEventStart = numbers.exec(v.get("StartTime")) %>
+        <% } %>
+
+        <% if ( currentEventStart == null ){ %>
+        <% } else if ( currentEventStart[0] != eventTime) { %>
+            <% if (currentEventStart != 'All Day') { %>
+                <% eventTime = currentEventStart[0] %>
+                <% ampm = v.get("StartTime").slice(-4) %>
+            <% } else { %>
+                <% eventTime = currentEventStart %>
+                <% ampm = '' %>
+            <% } %>
+            </div> <% /* close the original opening event-time-slot div from line 9 */ %>
+            <div class="event-time-slot row-fluid">
+                <div class="sorted-by span12">
+                    <h2 class="sort-field"><%= v.get('Day') %>, <%= eventTime %> <%= ampm %> <span class="expanded">collapse</span></h2>
+                </div>
+            <% /* don't close this div yet; we want the rest of the template inside event-time-slot */ %>
+        <% } %>
+    <% } else { %>
+        <% var currentEventSortField = v.get(sortField) %>
+        <% if (currentEventSortField != displaySortField){ %>
+            <% displaySortField = currentEventSortField %>
+            </div> <% /* close the original opening event-time-slot div from line 9 */ %>
+            <div class="event-time-slot row-fluid">
+                <div class="sorted-by span12">
+                    <h2 class="sort-field"><%= displaySortField %> <span class="collapsed">expand</span></h2>
+                </div>
+            <% /* don't close this div yet; we want the rest of the template inside event-time-slot */ %>
+        <% } %>
+    <% } %>
+
+    <div class="row-fluid event-deets<% if (!v.get('Eventbrite')) { %> unticketed_event<% } %>">
+    <div class="span12">
+        <div class="well well-small clearfix">
+            <div class="title span4">
+                <% if (v.get("AnniversaryEvent")) { %><div class="anniversary"><div class="banner-left-side"></div>30th Anniversary Event!<div class="banner-right-side"></div></div><% } %>
+                <h2 class="event-title"><%= v.get("Title") %></h2>
+                <p class="participants">
+                    <% if (v.get("Participant1")){ %><a href="bio.html#author/<%= v.get('Participant1').toLowerCase().replace(/[^\w\s]|_/g,'').replace(/\s+/g, "") %>"><%= v.get("Participant1") %></a><% }%><% if (v.get("Participant2")){ %>, <a href="bio.html#author/<%= v.get('Participant2').toLowerCase().replace(/[^\w\s]|_/g,'').replace(/\s+/g, "") %>"><%= v.get("Participant2") %></a><% }%><% if (v.get("Participant3")){ %>, <a href="bio.html#author/<%= v.get('Participant3').toLowerCase().replace(/[^\w\s]|_/g,'').replace(/\s+/g, "") %>"><%= v.get("Participant3") %></a><% }%><% if (v.get("Participant4")){ %>, <a href="bio.html#author/<%= v.get('Participant4').toLowerCase().replace(/[^\w\s]|_/g,'').replace(/\s+/g, "") %>"><%= v.get("Participant4") %></a><% } %><% if (v.get("Participant5")){ %>, <a href="bio.html#author/<%= v.get('Participant5').toLowerCase().replace(/[^\w\s]|_/g,'').replace(/\s+/g, "") %>"><%= v.get("Participant5") %></a><% }%>
+                </p>
+                <% if (v.get("Moderator")){ %><p class="moderator">Moderator: <%= v.get("Moderator") %></p><% }%>
+                <% if (v.get("Format")){ %>
+                    <span class="format badge">
+                        <% if (v.get("Format") == 'Conversation'){ %>
+                            <i class="icon-comment icon-white"></i>
+                        <% } else if(v.get("Format") == 'Cooking Demo'){ %>
+                            <i class="icon-glass icon-white"></i>
+                        <% } else if(v.get("Format") == 'Interactive'){ %>
+                            <i class="icon-random icon-white"></i>
+                        <% } else if(v.get("Format") == 'Panel'){ %>
+                            <i class="icon-user icon-white"></i>
+                        <% } else if(v.get("Format") == 'Performance'){ %>
+                            <i class="icon-flag icon-white"></i>
+                        <% } else if(v.get("Format") == 'Reading'){ %>
+                            <i class="icon-book icon-white"></i>
+                        <% } else if(v.get("Format") == 'Workshop'){ %>
+                            <i class="icon-pencil icon-white"></i>
+                        <% } %>
+                        <%= v.get("Format") %>
+                    </span>
+                <% } %>
+                <% if (v.get("Theme") && v.get("Theme") != 'General'){ %>
+                    <span class="theme badge">Theme: <%= v.get("Theme") %></span>
+                <% } %>
+
+            </div>
+            <div class="location-description span8">
+                <div class="when-and-where">
+                    <span class="event-start-time"><% if (v.get("StartTime")){ %><%= v.get("StartTime") %><% } %><% if (v.get("EndTime")){ %> - <%= v.get("EndTime") %><% } %></span>
+                    <% if (v.get("Venue")){ %><span class="event-venue"> | <%= v.get("Venue") %></span><% } %>
+                    <% if (v.get("OnlineDescription")){ %><hr /><% } %>
+                </div>
+                <% if (v.get("Eventbrite")) { %><div class="ticket-info"><a class="btn btn-warning" href="<%= v.get('Eventbrite') %>" target="_blank">Tickets required</a><p>Printers Row member and Fest Pass tickets available May 27. General tickets available May 30.</p></div><% } %>
+                <p class="event-description"><% if (v.get("OnlineDescription")){ %><%= v.get("OnlineDescription") %><% } %></p>
+           </div>
+        </div>
+    </div>
+    </div>
+<% }) %>
+</div> <% /* close the last event-time-slot div */ %>
+</script>
+<div class="container-fluid">
+
+    <div id="event-container">
+        <div class="row-fluid">
+            <div class="span6 offset6" id="search-form">
+                <form id="author-search" class="form-search">
+                    <input id="author-search-field" type="text" class="input-medium search-query">
+                    <button type="submit" class="btn btn-small">Search</button>
+                    <span id="clear-search">clear search</span>
+                </form>
+                <div class="btn-group" id="filtering">
+                    <a class="btn btn-small dropdown-toggle" data-toggle="dropdown" href="#">Filter events<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li id="venue_sort" type="button">Stage</li>
+                        <li class="divider"></li>
+                        <li id="time_sort" type="button">Time</li>
+                        <li class="divider"></li>
+                        <li id="category_sort" type="button">Format</li>
+                        <li class="divider"></li>
+                        <li id="theme_sort" type="button">Theme</li>
+                        <li class="divider"></li>
+                        <li id="tickets_sort" type="button">Ticketed</li>
+                    </ul>
+                </div><!--btn-group-->
+
+            </div>
+
+{#        <div id="sched-buttons" class="span6">
+                    <div id="filtering-buttons">
+                        <p class="filter-text">Filter by: </p>
+                        <div class="btn-group">
+                            <button class="btn btn-small" id="venue_sort" type="button">Stage</button>
+                            <button class="btn btn-small selected" id="time_sort" type="button">Time</button>
+                            <button class="btn btn-small" id="category_sort" type="button">Format</button>
+                            <button class="btn btn-small" id="theme_sort" type="button">Theme</button>
+                            <button class="btn btn-small" id="tickets_sort" type="button">Ticketed</button>
+                        </div><!--btn-group-->
+                    </div><!--filtering-buttons-->
+        </div><!--sched-buttons--> #}
+                <div class="span6" id="day-select">
+                    <button id="Saturday-events-header" class="btn viewing" type="button">Saturday events<span class="num_found"></span></button>
+                    <button id="Sunday-events-header" class="btn" type="button">Sunday events<span class="num_found"></span></button>
+                </div>
+        <div id="Saturday-events" class="row-fluid"></div>
+        <div id="Sunday-events" class="row-fluid"></div>
+    </div>
+</div><!--container-fluid-->
+
+{% endblock %}
